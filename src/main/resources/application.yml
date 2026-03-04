@@ -1,0 +1,21 @@
+server:
+  port: 8182
+  ssl:
+    enabled: ${JQUOTE_SSL_ENABLED:true}
+    key-store: ${JQUOTE_SSL_KEYSTORE:${user.home}/.jquote/jquote-keystore.p12}
+    key-store-password: ${JQUOTE_SSL_KEYSTORE_PASSWORD:changeit}
+    key-store-type: PKCS12
+    key-alias: jquote
+    key-password: ${JQUOTE_SSL_KEYSTORE_PASSWORD:changeit}
+
+schwab-api:
+  oauth2:
+    clientId: ${SCHWAB_CLIENT_ID:}
+    clientSecret: ${SCHWAB_CLIENT_SECRET:}
+    redirect-uri: https://127.0.0.1:8182/callback
+
+jquote:
+  schwab:
+    user-id: local-user
+    base-url: https://127.0.0.1:8182
+    post-auth-redirect: https://127.0.0.1:8182/oauth2/authorized
