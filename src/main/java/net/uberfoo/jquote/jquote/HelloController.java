@@ -51,6 +51,7 @@ import java.util.StringJoiner;
 @Component
 public class HelloController {
     private static final DateTimeFormatter OVERVIEW_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TOOLTIP_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_AXIS_FORMAT = DateTimeFormatter.ofPattern("MM/dd");
     private static final DateTimeFormatter INTRADAY_AXIS_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
     private static final Color CHART_BACKGROUND_COLOR = Color.web("#000000");
@@ -64,6 +65,8 @@ public class HelloController {
     private static final Color RSI_GUIDE_COLOR = Color.web("#4c5967");
     private static final Color MACD_COLOR = Color.web("#6aa6e8");
     private static final Color MACD_SIGNAL_COLOR = Color.web("#f2cb5a");
+    private static final Color CHART_HOVER_ACCENT_COLOR = Color.web("#f2cb5a");
+    private static final Color CHART_HOVER_SLOT_COLOR = Color.rgb(242, 203, 90, 0.14);
     private static final double CHART_LEFT_PAD = 56;
     private static final double CHART_RIGHT_PAD = 16;
     private static final int INTRADAY_TARGET_SLOT_WIDTH_PX = 8;
@@ -121,6 +124,8 @@ public class HelloController {
     private double historicalHoverCanvasX = -1;
     private double historicalHoverScreenX = -1;
     private double historicalHoverScreenY = -1;
+    private int intradayHoverIndex = -1;
+    private int historicalHoverIndex = -1;
 
     @FXML private TextField symbolInput;
     @FXML private ComboBox<IntradaySession> sessionChoice;
@@ -462,12 +467,13 @@ public class HelloController {
         WindowRange intradayWindow = resolveIntradayWindow(points.size(), layout.pricePanel().width());
         List<IntradayPoint> visiblePoints = points.subList(intradayWindow.startInclusive(), intradayWindow.endExclusive());
         intradayVisiblePoints = List.copyOf(visiblePoints);
-        List<Double> closes = visiblePoints.stream().map(point -> point.close().doubleValue()).toList();
-        IndicatorSeries bollinger = computeBollingerBands(closes, 20, 2.0);
-        intradayVisibleBollingerUpper = bollinger.upper();
-        intradayVisibleBollingerMiddle = bollinger.middle();
-        intradayVisibleBollingerLower = bollinger.lower();
-        intradayVisibleRsi = computeRsi(closes, 14);
+        List<Double> allCloses = points.stream().map(point -> point.close().doubleValue()).toList();
+        IndicatorSeries fullBollinger = computeBollingerBands(allCloses, 20, 2.0);
+        IndicatorSeries visibleBollinger = sliceIndicatorSeries(fullBollinger, intradayWindow);
+        intradayVisibleBollingerUpper = visibleBollinger.upper();
+        intradayVisibleBollingerMiddle = visibleBollinger.middle();
+        intradayVisibleBollingerLower = visibleBollinger.lower();
+        intradayVisibleRsi = sliceSeries(computeRsi(allCloses, 14), intradayWindow);
         String firstLabel = visiblePoints.getFirst().timestamp().format(INTRADAY_AXIS_FORMAT);
         String lastLabel = visiblePoints.getLast().timestamp().format(INTRADAY_AXIS_FORMAT);
         drawPricePanel(graphics, layout, visiblePoints.size(), firstLabel, lastLabel,
@@ -475,17 +481,18 @@ public class HelloController {
                 visiblePoints.stream().mapToDouble(point -> point.high().doubleValue()).toArray(),
                 visiblePoints.stream().mapToDouble(point -> point.low().doubleValue()).toArray(),
                 visiblePoints.stream().mapToDouble(point -> point.close().doubleValue()).toArray(),
-                bollingerEnabled ? bollinger : null);
+                bollingerEnabled ? visibleBollinger : null,
+                resolveHoveredVisibleIndex(intradayHoverCanvasX, visiblePoints.size(), intradayChartCanvas.getWidth()));
 
         if (rsiEnabled) {
             drawRsiPanel(graphics, layout, visiblePoints.size(), intradayVisibleRsi, firstLabel, lastLabel);
         }
         if (macdEnabled) {
-            MacdSeries macdSeries = computeMacd(closes, 12, 26, 9);
-            intradayVisibleMacd = macdSeries.macd();
-            intradayVisibleMacdSignal = macdSeries.signal();
-            intradayVisibleMacdHistogram = macdSeries.histogram();
-            drawMacdPanel(graphics, layout, visiblePoints.size(), macdSeries, firstLabel, lastLabel);
+            MacdSeries visibleMacdSeries = sliceMacdSeries(computeMacd(allCloses, 12, 26, 9), intradayWindow);
+            intradayVisibleMacd = visibleMacdSeries.macd();
+            intradayVisibleMacdSignal = visibleMacdSeries.signal();
+            intradayVisibleMacdHistogram = visibleMacdSeries.histogram();
+            drawMacdPanel(graphics, layout, visiblePoints.size(), visibleMacdSeries, firstLabel, lastLabel);
         } else {
             intradayVisibleMacd = new double[0];
             intradayVisibleMacdSignal = new double[0];
@@ -512,6 +519,7 @@ public class HelloController {
         tooltip.setShowDelay(javafx.util.Duration.ZERO);
         tooltip.setHideDelay(javafx.util.Duration.millis(60));
         tooltip.setShowDuration(javafx.util.Duration.seconds(30));
+        tooltip.setStyle("-fx-font-family: \"ProggyClean Nerd Font\"; -fx-font-size: 22px;");
         return tooltip;
     }
 
@@ -546,7 +554,7 @@ public class HelloController {
             return null;
         }
         DailyOhlcPoint point = historicalVisiblePoints.get(index);
-        return "Time: " + point.date().atStartOfDay().format(OVERVIEW_TIMESTAMP_FORMAT) + "\n"
+        return "Date: " + point.date().format(TOOLTIP_DATE_FORMAT) + "\n"
                 + "Open: " + formatBigDecimal(point.open()) + "\n"
                 + "High: " + formatBigDecimal(point.high()) + "\n"
                 + "Low: " + formatBigDecimal(point.low()) + "\n"
@@ -999,11 +1007,21 @@ public class HelloController {
             if (intradayPoints.isEmpty()) {
                 return;
             }
+            intradayTooltipDelay.stop();
+            intradayTooltip.hide();
+            intradayHoverCanvasX = event.getX();
+            intradayHoverScreenX = event.getScreenX();
+            intradayHoverScreenY = event.getScreenY();
             if (Math.abs(event.getDeltaY()) >= Math.abs(event.getDeltaX())) {
                 zoomIntradayViewport(event.getX(), event.getDeltaY());
             } else {
                 panIntradayViewport(event.getDeltaX());
             }
+            intradayHoverIndex = resolveHoveredVisibleIndex(
+                    intradayHoverCanvasX,
+                    intradayVisiblePoints.size(),
+                    intradayChartCanvas.getWidth());
+            intradayTooltipDelay.playFromStart();
             event.consume();
         });
         intradayChartCanvas.setOnMouseMoved(event -> {
@@ -1011,6 +1029,14 @@ public class HelloController {
             intradayHoverCanvasX = event.getX();
             intradayHoverScreenX = event.getScreenX();
             intradayHoverScreenY = event.getScreenY();
+            int nextHoverIndex = resolveHoveredVisibleIndex(
+                    intradayHoverCanvasX,
+                    intradayVisiblePoints.size(),
+                    intradayChartCanvas.getWidth());
+            if (nextHoverIndex != intradayHoverIndex) {
+                intradayHoverIndex = nextHoverIndex;
+                redrawIntradayChart();
+            }
             intradayTooltipDelay.playFromStart();
         });
         intradayChartCanvas.setOnMouseReleased(event -> endIntradayPan());
@@ -1018,6 +1044,9 @@ public class HelloController {
             endIntradayPan();
             intradayTooltipDelay.stop();
             intradayTooltip.hide();
+            intradayHoverCanvasX = -1;
+            intradayHoverIndex = -1;
+            redrawIntradayChart();
         });
         clearIntradayChart();
     }
@@ -1076,11 +1105,21 @@ public class HelloController {
             if (historicalPoints.isEmpty()) {
                 return;
             }
+            historicalTooltipDelay.stop();
+            historicalTooltip.hide();
+            historicalHoverCanvasX = event.getX();
+            historicalHoverScreenX = event.getScreenX();
+            historicalHoverScreenY = event.getScreenY();
             if (Math.abs(event.getDeltaY()) >= Math.abs(event.getDeltaX())) {
                 zoomHistoricalViewport(event.getX(), event.getDeltaY());
             } else {
                 panHistoricalViewport(event.getDeltaX());
             }
+            historicalHoverIndex = resolveHoveredVisibleIndex(
+                    historicalHoverCanvasX,
+                    historicalVisiblePoints.size(),
+                    historicalChartCanvas.getWidth());
+            historicalTooltipDelay.playFromStart();
             event.consume();
         });
         historicalChartCanvas.setOnMouseMoved(event -> {
@@ -1088,6 +1127,14 @@ public class HelloController {
             historicalHoverCanvasX = event.getX();
             historicalHoverScreenX = event.getScreenX();
             historicalHoverScreenY = event.getScreenY();
+            int nextHoverIndex = resolveHoveredVisibleIndex(
+                    historicalHoverCanvasX,
+                    historicalVisiblePoints.size(),
+                    historicalChartCanvas.getWidth());
+            if (nextHoverIndex != historicalHoverIndex) {
+                historicalHoverIndex = nextHoverIndex;
+                redrawHistoricalChart();
+            }
             historicalTooltipDelay.playFromStart();
         });
         historicalChartCanvas.setOnMouseReleased(event -> historicalPanActive = false);
@@ -1095,6 +1142,9 @@ public class HelloController {
             historicalPanActive = false;
             historicalTooltipDelay.stop();
             historicalTooltip.hide();
+            historicalHoverCanvasX = -1;
+            historicalHoverIndex = -1;
+            redrawHistoricalChart();
         });
         clearHistoricalChart();
     }
@@ -1209,12 +1259,13 @@ public class HelloController {
                 historicalWindow.startInclusive(),
                 historicalWindow.endExclusive());
         historicalVisiblePoints = List.copyOf(visiblePoints);
-        List<Double> closes = visiblePoints.stream().map(point -> point.close().doubleValue()).toList();
-        IndicatorSeries bollinger = computeBollingerBands(closes, 20, 2.0);
-        historicalVisibleBollingerUpper = bollinger.upper();
-        historicalVisibleBollingerMiddle = bollinger.middle();
-        historicalVisibleBollingerLower = bollinger.lower();
-        historicalVisibleRsi = computeRsi(closes, 14);
+        List<Double> allCloses = points.stream().map(point -> point.close().doubleValue()).toList();
+        IndicatorSeries fullBollinger = computeBollingerBands(allCloses, 20, 2.0);
+        IndicatorSeries visibleBollinger = sliceIndicatorSeries(fullBollinger, historicalWindow);
+        historicalVisibleBollingerUpper = visibleBollinger.upper();
+        historicalVisibleBollingerMiddle = visibleBollinger.middle();
+        historicalVisibleBollingerLower = visibleBollinger.lower();
+        historicalVisibleRsi = sliceSeries(computeRsi(allCloses, 14), historicalWindow);
         String firstLabel = visiblePoints.getFirst().date().format(DATE_AXIS_FORMAT);
         String lastLabel = visiblePoints.getLast().date().format(DATE_AXIS_FORMAT);
         drawPricePanel(graphics, layout, visiblePoints.size(), firstLabel, lastLabel,
@@ -1222,17 +1273,18 @@ public class HelloController {
                 visiblePoints.stream().mapToDouble(point -> point.high().doubleValue()).toArray(),
                 visiblePoints.stream().mapToDouble(point -> point.low().doubleValue()).toArray(),
                 visiblePoints.stream().mapToDouble(point -> point.close().doubleValue()).toArray(),
-                bollingerEnabled ? bollinger : null);
+                bollingerEnabled ? visibleBollinger : null,
+                resolveHoveredVisibleIndex(historicalHoverCanvasX, visiblePoints.size(), historicalChartCanvas.getWidth()));
 
         if (rsiEnabled) {
             drawRsiPanel(graphics, layout, visiblePoints.size(), historicalVisibleRsi, firstLabel, lastLabel);
         }
         if (macdEnabled) {
-            MacdSeries macdSeries = computeMacd(closes, 12, 26, 9);
-            historicalVisibleMacd = macdSeries.macd();
-            historicalVisibleMacdSignal = macdSeries.signal();
-            historicalVisibleMacdHistogram = macdSeries.histogram();
-            drawMacdPanel(graphics, layout, visiblePoints.size(), macdSeries, firstLabel, lastLabel);
+            MacdSeries visibleMacdSeries = sliceMacdSeries(computeMacd(allCloses, 12, 26, 9), historicalWindow);
+            historicalVisibleMacd = visibleMacdSeries.macd();
+            historicalVisibleMacdSignal = visibleMacdSeries.signal();
+            historicalVisibleMacdHistogram = visibleMacdSeries.histogram();
+            drawMacdPanel(graphics, layout, visiblePoints.size(), visibleMacdSeries, firstLabel, lastLabel);
         } else {
             historicalVisibleMacd = new double[0];
             historicalVisibleMacdSignal = new double[0];
@@ -1276,7 +1328,8 @@ public class HelloController {
                                 double[] highs,
                                 double[] lows,
                                 double[] closes,
-                                IndicatorSeries bollinger) {
+                                IndicatorSeries bollinger,
+                                int hoveredIndex) {
         if (pointCount == 0) {
             return;
         }
@@ -1307,6 +1360,12 @@ public class HelloController {
             double highY = panel.y() + ((maxHigh - highs[index]) / priceRange) * panel.height();
             double lowY = panel.y() + ((maxHigh - lows[index]) / priceRange) * panel.height();
 
+            if (index == hoveredIndex) {
+                double slotLeft = panel.x() + index * slotWidth;
+                graphics.setFill(CHART_HOVER_SLOT_COLOR);
+                graphics.fillRect(slotLeft, panel.y(), slotWidth, panel.height());
+            }
+
             boolean upCandle = closes[index] >= opens[index];
             graphics.setStroke(upCandle ? CHART_POSITIVE_COLOR : CHART_NEGATIVE_COLOR);
             graphics.strokeLine(candleCenterX, highY, candleCenterX, lowY);
@@ -1315,6 +1374,14 @@ public class HelloController {
             double bodyHeight = Math.max(1.2, Math.abs(closeY - openY));
             graphics.setFill(upCandle ? CHART_POSITIVE_COLOR : CHART_NEGATIVE_COLOR);
             graphics.fillRect(candleCenterX - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+
+            if (index == hoveredIndex) {
+                graphics.setStroke(CHART_HOVER_ACCENT_COLOR);
+                graphics.setLineWidth(1.2);
+                graphics.strokeRect(candleCenterX - bodyWidth / 2 - 1, bodyTop - 1, bodyWidth + 2, bodyHeight + 2);
+                graphics.strokeLine(candleCenterX, highY, candleCenterX, lowY);
+                graphics.setLineWidth(1.0);
+            }
         }
 
         if (bollinger != null) {
@@ -1597,6 +1664,35 @@ public class HelloController {
         return values;
     }
 
+    private IndicatorSeries sliceIndicatorSeries(IndicatorSeries series, WindowRange windowRange) {
+        if (series == null) {
+            return new IndicatorSeries(new double[0], new double[0], new double[0]);
+        }
+        return new IndicatorSeries(
+                sliceSeries(series.upper(), windowRange),
+                sliceSeries(series.middle(), windowRange),
+                sliceSeries(series.lower(), windowRange));
+    }
+
+    private MacdSeries sliceMacdSeries(MacdSeries series, WindowRange windowRange) {
+        if (series == null) {
+            return new MacdSeries(new double[0], new double[0], new double[0]);
+        }
+        return new MacdSeries(
+                sliceSeries(series.macd(), windowRange),
+                sliceSeries(series.signal(), windowRange),
+                sliceSeries(series.histogram(), windowRange));
+    }
+
+    private double[] sliceSeries(double[] values, WindowRange windowRange) {
+        if (values == null || windowRange == null || values.length == 0) {
+            return new double[0];
+        }
+        int start = Math.max(0, Math.min(windowRange.startInclusive(), values.length));
+        int end = Math.max(start, Math.min(windowRange.endExclusive(), values.length));
+        return Arrays.copyOfRange(values, start, end);
+    }
+
     private double minValid(double[] values, double fallback) {
         return minValid(new double[][]{values}, fallback);
     }
@@ -1660,6 +1756,8 @@ public class HelloController {
         historicalPoints = List.of();
         resetHistoricalViewport();
         historicalPanActive = false;
+        historicalHoverCanvasX = -1;
+        historicalHoverIndex = -1;
         historicalVisiblePoints = List.of();
         historicalVisibleRsi = new double[0];
         historicalVisibleMacd = new double[0];
@@ -1683,6 +1781,8 @@ public class HelloController {
         intradayViewportStart = 0;
         intradayViewportSize = 0;
         intradayPanActive = false;
+        intradayHoverCanvasX = -1;
+        intradayHoverIndex = -1;
         intradayVisiblePoints = List.of();
         intradayVisibleRsi = new double[0];
         intradayVisibleMacd = new double[0];

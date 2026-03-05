@@ -9,10 +9,14 @@ public class Launcher {
     }
 
     private static void configurePrismPipeline() {
-        String prismOrder = System.getProperty("prism.order");
-        if (prismOrder == null || prismOrder.isBlank()) {
-            // Use software rendering by default to avoid known D3D Canvas texture failures on some Windows drivers.
-            System.setProperty("prism.order", "sw");
+        String prismOrderProperty = System.getProperty("prism.order");
+        if (prismOrderProperty != null && !prismOrderProperty.isBlank()) {
+            return;
+        }
+
+        String prismOrderEnvironment = System.getenv("JQUOTE_PRISM_ORDER");
+        if (prismOrderEnvironment != null && !prismOrderEnvironment.isBlank()) {
+            System.setProperty("prism.order", prismOrderEnvironment);
         }
     }
 }
