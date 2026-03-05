@@ -15,11 +15,18 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class QuoteService {
     private static final Logger log = LoggerFactory.getLogger(QuoteService.class);
+    private static final ZoneId US_EASTERN = ZoneId.of("America/New_York");
+    private static final LocalTime US_REGULAR_OPEN = LocalTime.of(9, 30);
+    private static final LocalTime US_REGULAR_CLOSE = LocalTime.of(16, 0);
 
     private final SchwabSessionService sessionService;
     private final AuthBrowserLauncher authBrowserLauncher;
@@ -79,12 +86,17 @@ public class QuoteService {
         BigDecimal lastPrice = null;
         BigDecimal change = null;
         BigDecimal percentChange = null;
+        BigDecimal openPrice = null;
+        BigDecimal closePrice = null;
+        BigDecimal latestTickPrice = null;
+        boolean marketOpen = false;
 
         if (response instanceof QuoteResponse.EquityResponse equityResponse) {
             if (equityResponse.getRegular() != null) {
                 lastPrice = equityResponse.getRegular().getRegularMarketLastPrice();
                 change = equityResponse.getRegular().getRegularMarketNetChange();
                 percentChange = equityResponse.getRegular().getRegularMarketPercentChange();
+                latestTickPrice = equityResponse.getRegular().getRegularMarketLastPrice();
             }
             QuoteEquity quote = equityResponse.getQuote();
             if (quote != null) {
@@ -97,7 +109,13 @@ public class QuoteService {
                 if (percentChange == null) {
                     percentChange = quote.getNetPercentChange();
                 }
+                if (latestTickPrice == null) {
+                    latestTickPrice = quote.getLastPrice();
+                }
+                openPrice = quote.getOpenPrice();
+                closePrice = quote.getClosePrice();
             }
+            marketOpen = isUsRegularSessionOpenNow();
         } else if (response instanceof QuoteResponse.IndexResponse indexResponse) {
             if (indexResponse.getQuote() != null) {
                 lastPrice = indexResponse.getQuote().getLastPrice();
@@ -130,7 +148,17 @@ public class QuoteService {
             }
         }
 
-        return new QuoteSnapshot(response.getSymbol(), response.getAssetMainType(), lastPrice, change, percentChange);
+        return new QuoteSnapshot(
+                response.getSymbol(),
+                response.getAssetMainType(),
+                lastPrice,
+                change,
+                percentChange,
+                openPrice,
+                closePrice,
+                latestTickPrice,
+                marketOpen
+        );
     }
 
     private void publishError(String symbol, String message) {
@@ -167,5 +195,15 @@ public class QuoteService {
             return "";
         }
         return symbol.trim().toUpperCase();
+    }
+
+    private boolean isUsRegularSessionOpenNow() {
+        ZonedDateTime easternNow = ZonedDateTime.now(US_EASTERN);
+        DayOfWeek day = easternNow.getDayOfWeek();
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+            return false;
+        }
+        LocalTime time = easternNow.toLocalTime();
+        return !time.isBefore(US_REGULAR_OPEN) && time.isBefore(US_REGULAR_CLOSE);
     }
 }

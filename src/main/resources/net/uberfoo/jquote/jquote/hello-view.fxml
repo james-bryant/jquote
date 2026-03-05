@@ -1,18 +1,149 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="TOP_LEFT" spacing="12.0" xmlns:fx="http://javafx.com/fxml"
+<VBox alignment="TOP_LEFT" spacing="10.0" styleClass="app-root" xmlns:fx="http://javafx.com/fxml"
       fx:controller="net.uberfoo.jquote.jquote.HelloController">
     <padding>
         <Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/>
     </padding>
 
-    <Label text="Schwab Quote" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-    <TextField fx:id="symbolInput" promptText="Enter symbol (e.g., AAPL)" onAction="#onSymbolEntered"/>
-    <Label fx:id="statusLabel" wrapText="true"/>
-    <Label fx:id="quoteLabel" wrapText="true" style="-fx-font-size: 14px;"/>
+    <Label text="JQuote" styleClass="title-label"/>
+    <HBox alignment="CENTER_LEFT" spacing="8.0">
+        <Label styleClass="panel-copy" text="Symbol"/>
+        <TextField fx:id="symbolInput" promptText="Enter symbol (e.g., AAPL)" onAction="#onSymbolEntered"/>
+    </HBox>
+    <TabPane fx:id="chartTabPane" tabClosingPolicy="UNAVAILABLE" styleClass="chart-tab-pane">
+        <tabs>
+            <Tab text="Overview" closable="false">
+                <content>
+                    <VBox spacing="10.0" styleClass="panel-content">
+                        <Label styleClass="panel-title" text="Overview"/>
+                        <Label fx:id="overviewHeadlineLabel"
+                               styleClass="overview-headline"
+                               text="Enter a symbol to load live market context."
+                               wrapText="true"/>
+                        <Label fx:id="overviewSignalLabel"
+                               styleClass="overview-signal"
+                               text=" Waiting for data..."
+                               wrapText="true"/>
+                        <Label fx:id="overviewQuoteStatsLabel"
+                               styleClass="overview-metric"
+                               text=" Quote stats will appear here."
+                               wrapText="true"/>
+                        <Label fx:id="overviewIntradayStatsLabel"
+                               styleClass="overview-metric"
+                               text=" Intraday stats will appear here."
+                               wrapText="true"/>
+                        <Label fx:id="overviewHistoricalStatsLabel"
+                               styleClass="overview-metric"
+                               text=" Historical stats will appear here."
+                               wrapText="true"/>
+                        <Label fx:id="overviewIndicatorStatsLabel"
+                               styleClass="overview-metric"
+                               text=" Indicator stats will appear here."
+                               wrapText="true"/>
+                        <Label fx:id="overviewComputedStatsLabel"
+                               styleClass="overview-metric"
+                               text=" Computed analytics will appear here."
+                               wrapText="true"/>
+                    </VBox>
+                </content>
+            </Tab>
+            <Tab text="Historical" closable="false">
+                <content>
+                    <VBox spacing="10.0" styleClass="panel-content">
+                        <Label styleClass="panel-title" text="Historical"/>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                            <Button fx:id="historicalPreset30Button" text="30D" onAction="#onHistoricalPreset30"/>
+                            <Button fx:id="historicalPreset90Button" text="90D" onAction="#onHistoricalPreset90"/>
+                            <Button fx:id="historicalPreset120Button" text="120D" onAction="#onHistoricalPreset120"/>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                            <Label styleClass="panel-copy" text="Start"/>
+                            <DatePicker fx:id="historicalStartDatePicker"/>
+                            <Label styleClass="panel-copy" text="End"/>
+                            <DatePicker fx:id="historicalEndDatePicker"/>
+                            <Button fx:id="historicalApplyRangeButton" text="Apply range" onAction="#onHistoricalCustomRangeApplied"/>
+                        </HBox>
+                        <Label fx:id="historicalValidationLabel"
+                               styleClass="historical-validation-hint"
+                               wrapText="true"
+                               visible="false"
+                               managed="false"/>
+                        <Label fx:id="historicalErrorBannerLabel"
+                               styleClass="historical-error-banner"
+                               wrapText="true"
+                               visible="false"
+                               managed="false"/>
+                        <Button fx:id="historicalRetryButton"
+                                text="Try again"
+                                onAction="#onRetryHistorical"
+                                visible="false"
+                                managed="false"/>
+                        <Label fx:id="historicalStatusLabel" styleClass="panel-copy" wrapText="true"/>
+                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="indicator-controls">
+                            <Label styleClass="panel-copy" text="Indicators"/>
+                            <CheckBox fx:id="historicalRsiToggle" text="RSI" onAction="#onIndicatorToggleChanged"/>
+                            <CheckBox fx:id="historicalMacdToggle" text="MACD" onAction="#onIndicatorToggleChanged"/>
+                            <CheckBox fx:id="historicalBollingerToggle" text="Bollinger Bands" onAction="#onIndicatorToggleChanged"/>
+                        </HBox>
+                        <StackPane styleClass="historical-chart-container">
+                            <Canvas fx:id="historicalChartCanvas" width="800.0" height="320.0"/>
+                            <Label fx:id="historicalEmptyLabel"
+                                   styleClass="panel-copy"
+                                   text="No historical daily data available for this range."
+                                   visible="false"
+                                   managed="false"
+                                   mouseTransparent="true"/>
+                            <VBox.vgrow>ALWAYS</VBox.vgrow>
+                        </StackPane>
+                        <Label fx:id="historicalTimestampLabel" styleClass="overview-metric" wrapText="false"/>
+                    </VBox>
+                </content>
+            </Tab>
+            <Tab text="Intraday" closable="false">
+                <content>
+                    <VBox spacing="10.0" styleClass="panel-content">
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                            <Label styleClass="panel-copy" text="Session"/>
+                            <ComboBox fx:id="sessionChoice" onAction="#onSessionChanged"/>
+                        </HBox>
+                        <Label fx:id="statusLabel" styleClass="panel-copy" wrapText="true"/>
+                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="indicator-controls intraday-indicator-controls">
+                            <Label styleClass="panel-copy" text="Indicators"/>
+                            <CheckBox fx:id="intradayRsiToggle" text="RSI" onAction="#onIndicatorToggleChanged"/>
+                            <CheckBox fx:id="intradayMacdToggle" text="MACD" onAction="#onIndicatorToggleChanged"/>
+                            <CheckBox fx:id="intradayBollingerToggle" text="Bollinger Bands" onAction="#onIndicatorToggleChanged"/>
+                        </HBox>
+                        <Button fx:id="retryIntradayButton" text="Retry intraday" onAction="#onRetryIntraday" visible="false" managed="false"/>
+                        <StackPane styleClass="intraday-chart-container">
+                            <Canvas fx:id="intradayChartCanvas" width="800.0" height="320.0"/>
+                            <Label fx:id="intradayEmptyLabel"
+                                   styleClass="panel-copy"
+                                   text="No intraday candle data available for this session."
+                                   visible="false"
+                                   managed="false"
+                                   mouseTransparent="true"/>
+                            <VBox.vgrow>ALWAYS</VBox.vgrow>
+                        </StackPane>
+                        <Label fx:id="intradayTimestampLabel" styleClass="overview-metric" wrapText="false"/>
+                    </VBox>
+                </content>
+            </Tab>
+        </tabs>
+        <VBox.vgrow>ALWAYS</VBox.vgrow>
+    </TabPane>
 </VBox>

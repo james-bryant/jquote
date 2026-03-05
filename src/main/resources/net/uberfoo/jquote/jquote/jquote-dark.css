@@ -1,0 +1,288 @@
+.root {
+  -fx-base: #11151b;
+  -fx-background: #0b1117;
+  -fx-accent: #49a4ff;
+  -fx-focus-color: #49a4ff;
+  -fx-faint-focus-color: transparent;
+  -color-bg-app: #0b1117;
+  -color-bg-surface: #111821;
+  -color-bg-panel: #000000;
+  -color-bg-control: #1b2632;
+  -color-bg-control-hover: #243447;
+  -color-border: #273545;
+  -color-border-strong: #435566;
+  -color-text-primary: #e7edf4;
+  -color-text-secondary: #b7c5d4;
+  -color-text-muted: #9fafbf;
+  -color-positive: #39a04a;
+  -color-negative: #d85d5d;
+}
+
+.app-root {
+  -fx-background-color: linear-gradient(to bottom, #11161e, -color-bg-app);
+}
+
+.title-label {
+  -fx-font-size: 18px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #e7edf4;
+}
+
+.chart-tab-pane {
+  -fx-background-color: transparent;
+}
+
+.chart-tab-pane .tab-header-area .tab-header-background {
+  -fx-background-color: #151c25;
+  -fx-background-insets: 0;
+}
+
+.chart-tab-pane .tab {
+  -fx-background-color: #1d2632;
+  -fx-padding: 6 14 6 14;
+}
+
+.chart-tab-pane .tab-label {
+  -fx-text-fill: -color-text-muted;
+  -fx-font-weight: 600;
+}
+
+.chart-tab-pane .tab:selected {
+  -fx-background-color: #2f6ca3;
+  -fx-border-color: #7ec1ff;
+  -fx-border-width: 0 0 2 0;
+}
+
+.chart-tab-pane .tab:selected .tab-label {
+  -fx-text-fill: #f5fbff;
+}
+
+.chart-tab-pane .tab-content-area {
+  -fx-background-color: -color-bg-surface;
+  -fx-border-color: -color-border;
+  -fx-border-width: 1;
+}
+
+.panel-content {
+  -fx-padding: 14;
+}
+
+.panel-title {
+  -fx-font-size: 15px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #d8e3ee;
+}
+
+.panel-copy {
+  -fx-text-fill: -color-text-secondary;
+}
+
+.overview-headline {
+  -fx-font-family: "ProggyClean Nerd Font";
+  -fx-font-size: 22px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #f0f6ff;
+}
+
+.overview-signal {
+  -fx-font-family: "ProggyClean Nerd Font";
+  -fx-font-size: 20px;
+  -fx-font-weight: 700;
+  -fx-padding: 8 10 8 10;
+  -fx-background-color: #172231;
+  -fx-border-color: -color-border;
+  -fx-border-radius: 6;
+  -fx-background-radius: 6;
+  -fx-text-fill: -color-text-primary;
+}
+
+.overview-signal.overview-up {
+  -fx-text-fill: -color-positive;
+  -fx-border-color: -color-positive;
+  -fx-background-color: rgba(57, 160, 74, 0.15);
+}
+
+.overview-signal.overview-down {
+  -fx-text-fill: -color-negative;
+  -fx-border-color: -color-negative;
+  -fx-background-color: rgba(216, 93, 93, 0.15);
+}
+
+.overview-metric {
+  -fx-font-family: "ProggyClean Nerd Font";
+  -fx-font-size: 20px;
+  -fx-text-fill: #d4e2f1;
+  -fx-padding: 8 10 8 10;
+  -fx-background-color: #121b27;
+  -fx-border-color: -color-border;
+  -fx-border-radius: 6;
+  -fx-background-radius: 6;
+}
+
+.historical-validation-hint {
+  -fx-text-fill: #f2cb5a;
+  -fx-font-size: 15px;
+}
+
+.historical-error-banner {
+  -fx-background-color: rgba(216, 93, 93, 0.2);
+  -fx-border-color: -color-negative;
+  -fx-border-width: 1;
+  -fx-padding: 8 10 8 10;
+  -fx-text-fill: #ffd4d4;
+  -fx-background-radius: 4;
+  -fx-border-radius: 4;
+}
+
+.indicator-controls {
+  -fx-padding: 6 8 6 8;
+  -fx-background-color: #141d28;
+  -fx-border-color: -color-border;
+  -fx-border-radius: 4;
+  -fx-background-radius: 4;
+}
+
+.indicator-controls .check-box {
+  -fx-text-fill: -color-text-primary;
+}
+
+.indicator-controls .check-box .box {
+  -fx-background-color: -color-bg-control;
+  -fx-border-color: -color-border-strong;
+}
+
+.indicator-controls .check-box:selected .box {
+  -fx-background-color: #2f6ca3;
+}
+
+.intraday-indicator-controls .label,
+.intraday-indicator-controls .check-box {
+  -fx-font-family: "ProggyClean Nerd Font";
+  -fx-font-size: 14px;
+  -fx-text-fill: #d4e2f1;
+}
+
+.historical-chart-container {
+  -fx-background-color: -color-bg-panel;
+  -fx-border-color: -color-border;
+  -fx-border-width: 1;
+  -fx-min-height: 320;
+}
+
+.intraday-chart-container {
+  -fx-background-color: -color-bg-panel;
+  -fx-border-color: -color-border;
+  -fx-border-width: 1;
+  -fx-min-height: 320;
+}
+
+.label {
+  -fx-text-fill: -color-text-primary;
+}
+
+.text-field,
+.combo-box,
+.date-picker,
+.button {
+  -fx-background-color: -color-bg-control;
+  -fx-text-fill: -color-text-primary;
+  -fx-border-color: -color-border;
+  -fx-border-radius: 4;
+  -fx-background-radius: 4;
+}
+
+.button {
+  -fx-font-weight: 600;
+}
+
+.text-field:focused,
+.combo-box:focused,
+.date-picker:focused,
+.button:focused {
+  -fx-border-color: -fx-accent;
+}
+
+.button:hover {
+  -fx-background-color: -color-bg-control-hover;
+}
+
+.text-field {
+  -fx-prompt-text-fill: -color-text-muted;
+}
+
+.combo-box .list-cell {
+  -fx-background-color: -color-bg-control;
+  -fx-text-fill: -color-text-primary;
+}
+
+.combo-box-popup .list-view {
+  -fx-background-color: -color-bg-control;
+  -fx-control-inner-background: -color-bg-control;
+  -fx-border-color: -color-border;
+}
+
+.combo-box-popup .list-cell:filled:hover,
+.combo-box-popup .list-cell:filled:selected {
+  -fx-background-color: #2f6ca3;
+  -fx-text-fill: #f5fbff;
+}
+
+.date-picker .text-field {
+  -fx-background-color: -color-bg-control;
+}
+
+.date-picker-popup {
+  -fx-background-color: -color-bg-control;
+  -fx-border-color: -color-border;
+}
+
+.date-picker-popup .month-year-pane,
+.date-picker-popup .calendar-grid {
+  -fx-background-color: -color-bg-control;
+}
+
+.date-picker-popup .label,
+.date-picker-popup .week-number-cell,
+.date-picker-popup .day-name-cell {
+  -fx-text-fill: -color-text-primary;
+}
+
+.date-picker-popup .day-cell {
+  -fx-background-color: -color-bg-control;
+  -fx-text-fill: -color-text-primary;
+}
+
+.date-picker-popup .day-cell:hover {
+  -fx-background-color: -color-bg-control-hover;
+}
+
+.chart-plot-background {
+  -fx-background-color: #000000;
+}
+
+.tooltip {
+  -fx-background-color: #111821;
+  -fx-text-fill: -color-text-primary;
+  -fx-border-color: -color-border-strong;
+}
+
+.intraday-quote-label {
+  -fx-font-size: 14px;
+  -fx-text-fill: -color-text-primary;
+}
+
+.intraday-quote-label:up,
+.intraday-state-label:up {
+  -fx-text-fill: -color-positive;
+}
+
+.intraday-quote-label:down,
+.intraday-state-label:down {
+  -fx-text-fill: -color-negative;
+}
+
+.intraday-state-label {
+  -fx-font-size: 13px;
+  -fx-font-weight: bold;
+  -fx-text-fill: -color-text-primary;
+}

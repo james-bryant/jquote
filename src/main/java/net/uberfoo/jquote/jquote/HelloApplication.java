@@ -12,6 +12,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class HelloApplication extends Application {
     private ConfigurableApplicationContext context;
@@ -27,7 +28,9 @@ public class HelloApplication extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
         fxmlLoader.setControllerFactory(context::getBean);
-        Scene scene = new Scene(fxmlLoader.load(), 420, 240);
+        Scene scene = new Scene(fxmlLoader.load(), 900, 620);
+        scene.getStylesheets().add(Objects.requireNonNull(
+                HelloApplication.class.getResource("jquote-dark.css")).toExternalForm());
         stage.setTitle("JQuote");
         stage.setScene(scene);
         stage.show();
